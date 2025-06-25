@@ -1,10 +1,14 @@
 #!/usr/bin/env php
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 /**
  * First Choice PHP Shield - CLI Entrypoint
  * @author First Choice Cars UAE 
  * @license MIT
  */
+
+// Composer autoload and config
 require __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/config.php';
 
@@ -17,19 +21,27 @@ use FirstChoicePHPShield\Logger;
 use FirstChoicePHPShield\Quarantine;
 use FirstChoicePHPShield\Reporter;
 
+// Parse command line arguments
 $cmd = $argv[1] ?? null;
 $scanPath = $argv[2] ?? SCAN_PATH;
+
+// Email for reporting (set in config/email.php or fallback to env)
+$emailRecipient = defined('REPORT_EMAIL')
+    ? REPORT_EMAIL
+    : (getenv('SHIELD_REPORT_EMAIL') ?: 'your-email@example.com');
 
 if ($cmd === 'scan') {
     echo "=== First Choice PHP Shield ===\n";
     $logger = new Logger(LOG_DIR);
-    $signatureEngine = new SignatureEngine(SIGNATURE_FILE);
-    $entropyEngine = new EntropyEngine(ENTROPY_THRESHOLD);
-    $heuristicEngine = new HeuristicEngine();
-    $forensicsEngine = new ForensicsEngine();
-    $quarantine = new Quarantine(QUARANTINE_DIR);
-    $reporter = new Reporter('your-email@example.com');
 
+    $signatureEngine  = new SignatureEngine(SIGNATURE_FILE);
+    $entropyEngine    = new EntropyEngine(ENTROPY_THRESHOLD);
+    $heuristicEngine  = new HeuristicEngine();
+    $forensicsEngine  = new ForensicsEngine();
+    $quarantine       = new Quarantine(QUARANTINE_DIR);
+    $reporter         = new Reporter($emailRecipient);
+
+    // Pass engines, logger, and (optional) quarantine handler to scanner
     $scanner = new Scanner(
         $scanPath,
         $signatureEngine,
@@ -39,13 +51,47 @@ if ($cmd === 'scan') {
         $logger,
         QUARANTINE_ENABLED ? $quarantine : null
     );
+
     $scanner->run();
     $logger->finalize();
+
+    // Get paths to all log files
+    $entropyLog    = method_exists($logger, 'getEntropyLogFile')    ? $logger->getEntropyLogFile()    : null;
+    $suspiciousLog = method_exists($logger, 'getSuspiciousLogFile') ? $logger->getSuspiciousLogFile() : null;
+    $malwareLog    = method_exists($logger, 'getMalwareLogFile')    ? $logger->getMalwareLogFile()    : null;
+    $cleanLog      = method_exists($logger, 'getCleanLogFile')      ? $logger->getCleanLogFile()      : null;
+
+    // Prepare the report body with all logs
+    $reportBody = "PHP Shield Scan Results:\n\n";
+
+    if ($malwareLog && file_exists($malwareLog)) {
+        $reportBody .= "=== 100% Malware Detections ===\n";
+        $reportBody .= file_get_contents($malwareLog) . "\n";
+    }
+    if ($entropyLog && file_exists($entropyLog)) {
+        $reportBody .= "\n=== Entropy Detections ===\n";
+        $reportBody .= file_get_contents($entropyLog) . "\n";
+    }
+    if ($suspiciousLog && file_exists($suspiciousLog)) {
+        $reportBody .= "\n=== Suspicious Detections ===\n";
+        $reportBody .= file_get_contents($suspiciousLog) . "\n";
+    }
+    if ($cleanLog && file_exists($cleanLog)) {
+        $reportBody .= "\n=== Clean Files ===\n";
+        $reportBody .= file_get_contents($cleanLog) . "\n";
+    }
+
+    // Send the full report by email
     $reporter->sendReport(
-        "First Choice PHP Shield Scan",
-        file_get_contents($logger->getLogFilePath())
+        "First Choice PHP Shield Scan Report",
+        $reportBody
     );
-    echo "\nScan complete. Log saved: {$logger->getLogFilePath()}\n";
+
+    echo "\nScan complete. Log files created:\n";
+    if ($malwareLog)    echo "  Malware:     $malwareLog\n";
+    if ($entropyLog)    echo "  Entropy:     $entropyLog\n";
+    if ($suspiciousLog) echo "  Suspicious:  $suspiciousLog\n";
+    if ($cleanLog)      echo "  Clean:       $cleanLog\n";
     exit(0);
 }
 
