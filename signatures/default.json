@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Eval Base64 Decode",
+    "pattern": "eval\\s*\\(\\s*base64_decode",
+    "severity": "high"
+  },
+  {
+    "name": "Remote File Include",
+    "pattern": "file_get_contents\\s*\\(['\"]http",
+    "severity": "high"
+  },
+  {
+    "name": "GzInflate Obfuscation",
+    "pattern": "gzinflate\\s*\\(",
+    "severity": "medium"
+  },
+  {
+    "name": "POST Command Injection",
+    "pattern": "\\$_POST\\s*\\[\\s*['\"]cmd['\"]\\s*\\]",
+    "severity": "critical"
+  },
+  {
+    "name": "Dangerous Assert",
+    "pattern": "assert\\s*\\(",
+    "severity": "high"
+  },
+  {
+    "name": "Shell Exec",
+    "pattern": "shell_exec\\s*\\(",
+    "severity": "high"
+  },
+  {
+    "name": "System Command",
+    "pattern": "system\\s*\\(",
+    "severity": "high"
+  },
+  {
+    "name": "Passthru Command",
+    "pattern": "passthru\\s*\\(",
+    "severity": "high"
+  },
+  {
+    "name": "Eval User Input",
+    "pattern": "eval\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)\\s*\\)",
+    "severity": "critical"
+  },
+  {
+    "name": "Base64 Decode User Input",
+    "pattern": "base64_decode\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)\\s*\\)",
+    "severity": "high"
+  },
+  {
+    "name": "Include Remote Variable",
+    "pattern": "include\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "severity": "critical"
+  },
+  {
+    "name": "R57/C99 Web Shell Marker",
+    "pattern": "WSO|r57shell|c99shell",
+    "severity": "critical"
+  }
+]

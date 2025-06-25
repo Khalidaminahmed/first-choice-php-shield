@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+/**
+ * First Choice PHP Shield - CLI Entrypoint
+ * @author First Choice Cars UAE 
+ * @license MIT
+ */
+require __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/config.php';
+
+use FirstChoicePHPShield\Scanner;
+use FirstChoicePHPShield\SignatureEngine;
+use FirstChoicePHPShield\EntropyEngine;
+use FirstChoicePHPShield\HeuristicEngine;
+use FirstChoicePHPShield\ForensicsEngine;
+use FirstChoicePHPShield\Logger;
+use FirstChoicePHPShield\Quarantine;
+use FirstChoicePHPShield\Reporter;
+
+$cmd = $argv[1] ?? null;
+$scanPath = $argv[2] ?? SCAN_PATH;
+
+if ($cmd === 'scan') {
+    echo "=== First Choice PHP Shield ===\n";
+    $logger = new Logger(LOG_DIR);
+    $signatureEngine = new SignatureEngine(SIGNATURE_FILE);
+    $entropyEngine = new EntropyEngine(ENTROPY_THRESHOLD);
+    $heuristicEngine = new HeuristicEngine();
+    $forensicsEngine = new ForensicsEngine();
+    $quarantine = new Quarantine(QUARANTINE_DIR);
+    $reporter = new Reporter('your-email@example.com');
+
+    $scanner = new Scanner(
+        $scanPath,
+        $signatureEngine,
+        $entropyEngine,
+        $heuristicEngine,
+        $forensicsEngine,
+        $logger,
+        QUARANTINE_ENABLED ? $quarantine : null
+    );
+    $scanner->run();
+    $logger->finalize();
+    $reporter->sendReport(
+        "First Choice PHP Shield Scan",
+        file_get_contents($logger->getLogFilePath())
+    );
+    echo "\nScan complete. Log saved: {$logger->getLogFilePath()}\n";
+    exit(0);
+}
+
+echo "Usage: first-choice-php-shield scan /path/to/app\n";
+exit(1);

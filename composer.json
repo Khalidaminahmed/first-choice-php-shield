@@ -1,0 +1,17 @@
+{
+  "name": "firstchoice/php-shield",
+  "description": "First Choice PHP Shield – elite open-source PHP malware and forensics scanner",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "FirstChoicePHPShield\\": "src/"
+    }
+  },
+  "bin": [
+    "bin/first-choice-php-shield"
+  ],
+  "require": {
+    "php": "^8.0"
+  }
+}
