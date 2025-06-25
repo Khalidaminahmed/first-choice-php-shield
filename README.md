@@ -47,7 +47,7 @@ Scan your PHP project:
 php shield scan /path/to/your/project
 ```
 
-Restore quarantined files:
+Restore quarantined files (*restore feature for new log structure coming soon*):
 
 ```bash
 php shield restore logs/shield-YYYY-MM-DD-HHMM.log
@@ -61,19 +61,40 @@ php shield restore logs/shield-YYYY-MM-DD-HHMM.log
 
 ```bash
 Scanning started...
-[WARNING] Malicious file detected: /var/www/html/uploads/shell.php
-Signature: PHP Web Shell - system command
-[QUARANTINE] File moved to /quarantine/shell.php
+[MALWARE] /var/www/html/uploads/shell.php - Eval Base64 Decode (high)
+[SUSPICIOUS] /var/www/html/uploads/shell.php - Eval Base64 Decode (high)
+[ENTROPY] /var/www/html/images/logo.png => 7.93
+[CLEAN] /var/www/html/index.php
 
-Scan completed: 1 threat detected and quarantined.
-Logs available at: logs/shield-2025-06-25-1812.log
+Scan completed: 1 malware, 1 suspicious, 1 entropy, 1 clean.
+Logs available at: logs/shield-YYYY-MM-DD-HHMM-malware.log (also entropy, suspicious, clean logs)
 ```
 
-Restore quarantined files:
+---
 
-```bash
-php shield restore logs/shield-2025-06-25-1812.log
+## 📑 Scan Log Files
+
+After each scan, First Choice PHP Shield creates four separate log files in the `logs/` directory:
+
+* `*_malware.log` — Files confirmed as 100% malware (critical/high-severity signatures)
+* `*_suspicious.log` — All files flagged as suspicious (malware patterns, heuristic or forensic findings, quarantine actions)
+* `*_entropy.log` — Files with high entropy/obfuscation (including binaries, images, packed scripts, and encrypted files)
+* `*_clean.log` — Files scanned and found clean
+
+**Sample Output:**
+
+```txt
+[MALWARE] /var/www/html/uploads/shell.php - Eval Base64 Decode (high)
+[SUSPICIOUS] /var/www/html/uploads/shell.php - Eval Base64 Decode (high)
+[ENTROPY] /var/www/html/images/logo.png => 7.93
+[CLEAN] /var/www/html/index.php
 ```
+
+**Note:**
+
+* **First Choice PHP Shield scans all file types and extensions by default.**
+* Expect image, video, and binary files in the entropy log due to their high randomness.
+* Review the malware log first for critical threats, then the suspicious and entropy logs for further investigation.
 
 ---
 
@@ -82,24 +103,22 @@ php shield restore logs/shield-2025-06-25-1812.log
 ### General configuration (`config/config.php`)
 
 ```php
-return [
-    'quarantine_path' => __DIR__ . '/../quarantine/',
-    'log_path' => __DIR__ . '/../logs/',
-    'entropy_threshold' => 7.5,
-];
+define('PROJECT_ROOT', dirname(__DIR__));
+define('LOG_DIR', PROJECT_ROOT . '/logs/');
+define('QUARANTINE_ENABLED', true);
+define('QUARANTINE_DIR', PROJECT_ROOT . '/quarantine/');
+define('ENTROPY_THRESHOLD', 7.5);
 ```
 
 ### Email configuration (`config/email.php`)
 
 ```php
-return [
-    'smtp_host' => 'smtp.example.com',
-    'smtp_port' => 587,
-    'smtp_user' => 'user@example.com',
-    'smtp_password' => 'password',
-    'email_alerts' => true,
-    'alert_recipient' => 'admin@example.com',
-];
+define('SMTP_HOST', 'smtp.example.com');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'user@example.com');
+define('SMTP_PASSWORD', 'password');
+define('EMAIL_ALERTS', true);
+define('ALERT_RECIPIENT', 'admin@example.com');
 ```
 
 ### Example Signature (`signatures/default.json`)
@@ -142,7 +161,7 @@ Report vulnerabilities responsibly via [SECURITY.md](SECURITY.md).
 
 ## 🤝 Contributing
 
-Contributions are welcome! Check our [CONTRIBUTING.md](CONTRIBUTING.md) to get started. Look for issues labeled ["good first issue"](https://github.com/khalidaminahmed/first-choice-php-shield/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or submit a PR for review.
+Contributions are welcome! Check our [CONTRIBUTING.md](CONTRIBUTING.md) to get started. Look for issues labeled ["good first issue"](https://github.com/khalidaminahmed/first-choice-php-shield/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or submit a PR for review. The scanner is cross-platform compatible (Linux, macOS, Windows).
 
 ---
 
