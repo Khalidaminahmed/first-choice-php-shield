@@ -4,6 +4,7 @@
 
 ![License](https://img.shields.io/github/license/khalidaminahmed/first-choice-php-shield)
 ![PHP Version](https://img.shields.io/badge/PHP-%3E%3D7.4-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
 ---
 

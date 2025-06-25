@@ -1,17 +1,30 @@
 {
   "name": "firstchoice/php-shield",
   "description": "First Choice PHP Shield – elite open-source PHP malware and forensics scanner",
+  "version": "1.0.0",
   "type": "project",
   "license": "MIT",
+  "authors": [
+    {
+      "name": "Khalid Amin Ahmed",
+      "email": "khalid@firstchoicecars.com"
+    }
+  ],
   "autoload": {
     "psr-4": {
       "FirstChoicePHPShield\\": "src/"
     }
   },
   "bin": [
-    "bin/first-choice-php-shield"
+    "shield/first-choice-php-shield"
   ],
   "require": {
     "php": "^8.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0"
+  },
+  "scripts": {
+    "test": "phpunit"
   }
 }
