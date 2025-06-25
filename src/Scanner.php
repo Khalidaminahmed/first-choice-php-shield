@@ -2,37 +2,50 @@
 namespace FirstChoicePHPShield;
 
 /**
- * Main Scanner class - orchestrates the scanning process.
+ * Class Scanner
+ *
+ * Main Scanner class - orchestrates the malware scanning process.
+ * Scans directories recursively for malware using signature, entropy,
+ * heuristic, and forensic detection engines. Supports optional quarantine of flagged files.
+ *
+ * @package FirstChoicePHPShield
  */
 class Scanner
 {
-    /** @var string */
+    /** @var string Path to scan */
     protected string $path;
-    /** @var SignatureEngine */
+
+    /** @var SignatureEngine Signature-based detection engine */
     protected SignatureEngine $signatureEngine;
-    /** @var EntropyEngine */
+
+    /** @var EntropyEngine Entropy/obfuscation detection engine */
     protected EntropyEngine $entropyEngine;
-    /** @var HeuristicEngine */
+
+    /** @var HeuristicEngine Heuristic-based detection engine */
     protected HeuristicEngine $heuristicEngine;
-    /** @var ForensicsEngine */
+
+    /** @var ForensicsEngine Forensic/metadata analysis engine */
     protected ForensicsEngine $forensicsEngine;
-    /** @var Logger */
+
+    /** @var Logger Logger instance for logging scan results */
     protected Logger $logger;
-    /** @var Quarantine|null */
+
+    /** @var Quarantine|null Optional quarantine handler */
     protected ?Quarantine $quarantine;
 
     /**
      * Scanner constructor.
-     * @param string $path
-     * @param SignatureEngine $sig
-     * @param EntropyEngine $entropy
-     * @param HeuristicEngine $heuristics
-     * @param ForensicsEngine $forensics
-     * @param Logger $logger
-     * @param Quarantine|null $quarantine
+     *
+     * @param string          $path         Path to scan
+     * @param SignatureEngine $sig          Signature-based engine
+     * @param EntropyEngine   $entropy      Entropy-based engine
+     * @param HeuristicEngine $heuristics   Heuristic engine
+     * @param ForensicsEngine $forensics    Forensics engine
+     * @param Logger          $logger       Logger for output
+     * @param Quarantine|null $quarantine   Optional quarantine handler
      */
     public function __construct(
-        $path,
+        string $path,
         SignatureEngine $sig,
         EntropyEngine $entropy,
         HeuristicEngine $heuristics,
@@ -51,47 +64,59 @@ class Scanner
 
     /**
      * Run the malware scan on the target path.
+     * Scans all files recursively and logs detections.
+     *
+     * @return void
      */
-    public function run()
+    public function run(): void
     {
         $it = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->path, \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($it as $file) {
             if (!is_file($file) || !is_readable($file)) continue;
+
+            // SCAN EVERY FILE, NO FILTERING ON EXTENSION
+
             $content = @file_get_contents($file);
             if ($content === false) continue;
 
             $flagged = false;
 
-            // Signature scan
+            // Signature scan (also log as "malware" if severity is high/critical)
             foreach ($this->signatureEngine->scan($content) as $sig) {
-                $this->logger->log("[MATCH] $file => {$sig['name']} ({$sig['severity']})", 'match');
+                $this->logger->logSuspicious((string)$file, "{$sig['name']} ({$sig['severity']})");
+                if (in_array(strtolower($sig['severity']), ['critical', 'high'])) {
+                    $this->logger->logMalware((string)$file, "{$sig['name']} ({$sig['severity']})");
+                }
                 $flagged = true;
             }
             // Entropy scan
             $entropy = Utils::entropy($content);
             if ($entropy > ENTROPY_THRESHOLD) {
-                $this->logger->log("[ENTROPY] $file => $entropy", 'entropy');
+                $this->logger->logEntropy((string)$file, $entropy);
                 $flagged = true;
             }
             // Heuristic scan
             foreach ($this->heuristicEngine->detect($content) as $h) {
-                $this->logger->log("[HEURISTIC] $file => {$h['name']} ({$h['severity']})", 'heuristic');
+                $this->logger->logSuspicious((string)$file, "Heuristic: {$h['name']} ({$h['severity']})");
+                // Optionally, you could log certain heuristics as malware here as well
                 $flagged = true;
             }
             // Forensics scan
             foreach ($this->forensicsEngine->analyzeFile($file, $content) as $f) {
-                $this->logger->log("[FORENSIC] $file => {$f['issue']} | Fix: {$f['recommendation']}", 'forensic');
+                $this->logger->logSuspicious((string)$file, "Forensic: {$f['issue']} | Fix: {$f['recommendation']}");
+                // Optionally, you could log certain forensics as malware here as well
                 $flagged = true;
             }
-            // Quarantine
+            // Quarantine if flagged and enabled
             if ($flagged && $this->quarantine) {
                 $moved = $this->quarantine->move($file);
-                $this->logger->log("[QUARANTINE] $file => $moved", 'match');
+                $this->logger->logSuspicious((string)$file, "[QUARANTINE] => $moved");
             }
+            // Log clean file
             if (!$flagged) {
-                $this->logger->log("[CLEAN] $file", 'clean');
+                $this->logger->logClean((string)$file);
             }
         }
     }
